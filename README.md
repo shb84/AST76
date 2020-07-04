@@ -111,3 +111,7 @@ _See `example_usage.ipynb` notebook_
 
 ![](atm76/data/plot_k_viscosity.png)
 
+### Speed of Sound
+
+![](atm76/data/plot_speed_of_sound.png)
+
