@@ -20,7 +20,7 @@ setuptools.setup(
     url="https://github.com/shb84/ATM76.git",
     packages=setuptools.find_packages(),
     package_data={},
-    install_requires=["numpy>=1.16", "genn==0.1.0"],
+    install_requires=["numpy>=1.16", "genn"],
     include_package_data=True,
     classifiers=[
         "Programming Language :: Python :: 3",

@@ -13,19 +13,20 @@ contained in tables 1 and 2 from `Properties Of The U.S. Standard Atmosphere
 Enhanced Neural Networks (GENN), such that all predictions and partial are
 pure analytical functions (as opposed to linear table interpolation).
 """
+import pickle
 from genn import GENN
-from atm76.surrogates import (load_surrogate, GENN_PRESSURE, GENN_TEMPERATURE, GENN_DENSITY,
+from atm76.surrogates import (GENN_PRESSURE, GENN_TEMPERATURE, GENN_DENSITY,
                               GENN_SPEED_OF_SOUND, GENN_VISCOSITY, GENN_KINEMATIC_VISCOSITY)
 import numpy as np
 
 
 # Import trained surrogate models
-genn_pressure = load_surrogate(GENN_PRESSURE)
-genn_temperature = load_surrogate(GENN_TEMPERATURE)
-genn_density = load_surrogate(GENN_DENSITY)
-genn_viscosity = load_surrogate(GENN_VISCOSITY)
-genn_k_viscosity = load_surrogate(GENN_KINEMATIC_VISCOSITY)
-genn_speed_of_sound = load_surrogate(GENN_SPEED_OF_SOUND)
+genn_pressure = pickle.load(open(GENN_PRESSURE, "rb"))
+genn_temperature = pickle.load(open(GENN_TEMPERATURE, "rb"))
+genn_density = pickle.load(open(GENN_DENSITY, "rb"))
+genn_viscosity = pickle.load(open(GENN_VISCOSITY, "rb"))
+genn_k_viscosity = pickle.load(open(GENN_KINEMATIC_VISCOSITY, "rb"))
+genn_speed_of_sound = pickle.load(open(GENN_SPEED_OF_SOUND, "rb"))
 
 
 # Helper function to avoid repeating code
@@ -55,7 +56,7 @@ def _property(model: GENN, altitude: np.ndarray, partial: bool = False) -> np.nd
     if np.any(x < -2) or np.any(x > 86):
         raise ValueError(f'Altitude(s) out of bound. Allowed values: 0 <= alt <= 86 km')
     if partial:
-        y = model.gradient(x).reshape((1, -1))
+        y = model.jacobian(x).reshape((1, -1))
     else:
         y = model.predict(x)
     return y.reshape(altitude.shape)
@@ -174,18 +175,18 @@ def total_temperature(altitude: np.ndarray,
                                       d(Tt)/dM (units: K)  ],
     """
     try:
-        h = altitude.reshape((1, -1))
+        h = altitude.reshape((-1, 1))
     except AttributeError:
         altitude = np.array(altitude)
-        h = altitude.reshape((1, -1))
+        h = altitude.reshape((-1, 1))
     finally:
         TypeError(f'type(altitude) = {type(altitude)}. Expected numpy.ndarray')
 
     try:
-        M = mach_number.reshape((1, -1))
+        M = mach_number.reshape((-1, 1))
     except AttributeError:
         mach_number = np.array(mach_number)
-        M = mach_number.reshape((1, -1))
+        M = mach_number.reshape((-1, 1))
     finally:
         TypeError(f'type(altitude) = {type(altitude)}. Expected numpy.ndarray')
 
@@ -197,7 +198,7 @@ def total_temperature(altitude: np.ndarray,
 
     if partial:
         T = genn_temperature.predict(h)
-        dT_dh = genn_temperature.gradient(h).reshape((1, -1))
+        dT_dh = genn_temperature.jacobian(h).reshape((-1, 1))
         dTt_dh = dT_dh * (1. + 0.5 * (gamma - 1.) * M ** 2)
         dTt_dM = T * (gamma - 1.) * M
         y = np.array([dTt_dh[0],
@@ -226,18 +227,18 @@ def total_pressure(altitude: np.ndarray,
                                       d(Pt)/dM (units: K)  ],
     """
     try:
-        h = altitude.reshape((1, -1))
+        h = altitude.reshape((-1, 1))
     except AttributeError:
         altitude = np.array(altitude)
-        h = altitude.reshape((1, -1))
+        h = altitude.reshape((-1, 1))
     finally:
         TypeError(f'type(altitude) = {type(altitude)}. Expected numpy.ndarray')
 
     try:
-        M = mach_number.reshape((1, -1))
+        M = mach_number.reshape((-1, 1))
     except AttributeError:
         mach_number = np.array(mach_number)
-        M = mach_number.reshape((1, -1))
+        M = mach_number.reshape((-1, 1))
     finally:
         TypeError(f'type(altitude) = {type(altitude)}. Expected numpy.ndarray')
 
@@ -249,7 +250,7 @@ def total_pressure(altitude: np.ndarray,
 
     if partial:
         P = genn_pressure.predict(h)
-        dP_dh = genn_pressure.gradient(h).reshape((1, -1))
+        dP_dh = genn_pressure.jacobian(h).reshape((1, -1))
 
         dPt_dh = dP_dh * (1. + 0.5 * (gamma - 1.) * M ** 2) ** (gamma / (gamma - 1.))
 
@@ -347,4 +348,5 @@ class ATM76:
 
 if __name__ == "__main__":
     atm = ATM76()
-    print(atm.grad_total_temperature(altitude=[10, 9], mach_number=0.5))
+    print(atm.grad_total_temperature(altitude=np.array([10, 9]),
+                                     mach_number=np.array([0.5])))
